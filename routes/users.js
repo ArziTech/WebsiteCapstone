@@ -1,5 +1,15 @@
 const express = require('express');
+const {Pool} = require("pg");
 const router = express.Router();
+
+
+const pool = new Pool({
+  user: 'capstone',
+  host: 'localhost',
+  database: 'capstone',
+  password: 'admin',
+  port: 5432,
+});
 
 /* GET users listing. */
 router.get('/', async function(req, res, next) {
