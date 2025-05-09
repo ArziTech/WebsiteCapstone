@@ -50,6 +50,7 @@ app.post('/api/image',upload.single('image'), async (req, res)=>{
 
         return res.send({code: 200})
     } catch (e) {
+        console.log({e})
         res.send({code: 500, error: e})
     }
 })
