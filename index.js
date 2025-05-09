@@ -31,6 +31,7 @@ app.get('/', (req, res) => {
 // to store image to s3
 app.post('/api/image',upload.single('image'), async (req, res)=>{
     console.log('Bucket Access Key',BUCKET_ACCESS_KEY)
+    console.log('Bucket Secret Access Key',BUCKET_SECRET_ACCESS_KEY)
     try {
         console.log("req.body", req.body)
         console.log("req.file", req.file)
