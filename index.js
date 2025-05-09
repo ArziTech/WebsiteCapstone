@@ -30,20 +30,24 @@ app.get('/', (req, res) => {
 
 // to store image to s3
 app.post('/api/image',upload.single('image'), async (req, res)=>{
-    console.log('Bucket Access Key',BUCKET_ACCESS_KEY)
-    console.log('Bucket Secret Access Key',BUCKET_SECRET_ACCESS_KEY)
     try {
-        console.log("req.body", req.body)
-        console.log("req.file", req.file)
 
         const realImageData = req.file.buffer;
         const fileName = req.file.originalname;
+        const contentType = req.file.mimeType;
+
+        if(!(realImageData && fileName && contentType)) {
+            return res.send({
+                code: 400,
+                message: "Data not complete"
+            })
+        }
 
         const params = {
             Bucket: BUCKET_NAME,
             Key: fileName,
             Body: realImageData,
-            ContentType: req.file.mimeType
+            ContentType: contentType
         }
 
         const command = new PutObjectCommand(params)
@@ -58,5 +62,8 @@ app.post('/api/image',upload.single('image'), async (req, res)=>{
 })
 
 app.listen(port, () => {
+    if(!(BUCKET_NAME && BUCKET_REGION && BUCKET_ACCESS_KEY && BUCKET_SECRET_ACCESS_KEY)) {
+        throw new Error("Missing environment")
+    }
     console.log(`Server running on port: ${port}`)
 })
