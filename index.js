@@ -45,6 +45,8 @@ app.post('/api/image', upload.single('image'), async (req, res)=>{
             });
         }
 
+        console.log(typeof realImageData)
+
         // 2. Ekstrak tipe file dan data Base64
         const matches = realImageData.match(/^data:image\/(\w+);base64,(.+)$/);
         if (!matches || matches.length !== 3) {
