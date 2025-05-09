@@ -30,6 +30,7 @@ app.get('/', (req, res) => {
 
 // to store image to s3
 app.post('/api/image', upload.single('image'), async (req, res)=>{
+    // base64Image saya dapat undefined
     const { base64Image, fileName } = req.body;
 
     console.log("base64image", base64Image);
@@ -38,9 +39,9 @@ app.post('/api/image', upload.single('image'), async (req, res)=>{
     console.log("req.body", req.body)
     try {
 
+        // req.file.buffer adalah Buffer object
         const realImageData = req.file.buffer;
         const fileName = req.file.originalname;
-        const contentType = req.file.mimetype;
 
         if(!realImageData || !fileName) {
             return res.status(400).send({
@@ -49,21 +50,67 @@ app.post('/api/image', upload.single('image'), async (req, res)=>{
             });
         }
 
-        console.log(typeof realImageData)
-        console.log("-----------")
-        console.log({realImageData})
-        console.log("-----------")
+        // Convert Buffer to base64 string first
+        const base64String = realImageData.toString();
 
-        // 2. Ekstrak tipe file dan data Base64
-        const matches = realImageData.match(/^data:image\/(\w+);base64,(.+)$/);
-        if (!matches || matches.length !== 3) {
-            return res.status(400).json({ error: 'Invalid Base64 image format.' });
+        // karena realImageData bukan string, maka error di baris ini
+        const matches = base64String.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+            // If the base64 string includes the data URI prefix
+            const imageType = matches[1];
+            const pureBase64Data = matches[2];
+
+
+            const buffer = Buffer.from(pureBase64Data, 'base64');
+
+            const validMimeTypes = ["image/jpeg", "image/png", "image/gif"];
+            if (!validMimeTypes.includes(req.file.mimetype)) {
+                return res.status(400).send({
+                    message: "Invalid file type. Only images are allowed."
+                });
+            }
+
+            const params = {
+                Bucket: BUCKET_NAME,
+                Key: fileName,
+                Body: buffer,
+                ContentType: imageType
+            }
+
+            const command = new PutObjectCommand(params)
+
+            await s3.send(command);
+
+            return res.send({code: 200})
+        } else {
+
+            // If no data URI prefix found, assume it's pure base64
+            const buffer = Buffer.from(base64String, 'base64');
+            console.log("Heloooooo")
+            const validMimeTypes = ["image/jpeg", "image/png", "image/gif"];
+            if (!validMimeTypes.includes(req.file.mimetype)) {
+                return res.status(400).send({
+                    message: "Invalid file type. Only images are allowed."
+                });
+            }
+
+            const params = {
+                Bucket: BUCKET_NAME,
+                Key: fileName,
+                Body: buffer,
+                ContentType: req.file.mimetype
+            }
+
+            const command = new PutObjectCommand(params)
+
+            await s3.send(command);
+
+            return res.send({code: 200})
+            // ... continue with your S3 upload logic
         }
 
         const type = matches[1]; // 'jpeg', 'png', dll.
-        const base64Data = matches[2]; // Data tanpa prefix
 
-        // 3. Konversi Base64 ke Buffer
         const buffer = Buffer.from(base64Data, 'base64');
 
         const validMimeTypes = ["image/jpeg", "image/png", "image/gif"];
@@ -77,7 +124,7 @@ app.post('/api/image', upload.single('image'), async (req, res)=>{
             Bucket: BUCKET_NAME,
             Key: fileName,
             Body: buffer,
-            ContentType: contentType
+            ContentType: type
         }
 
         const command = new PutObjectCommand(params)
