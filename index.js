@@ -29,7 +29,7 @@ app.get('/', (req, res) => {
 })
 
 // to store image to s3
-app.post('/api/image',upload.single('image'), async (req, res)=>{
+app.post('/api/image', upload.single('image'), async (req, res)=>{
     console.log("req.file", req.file)
     console.log("req.body", req.body)
     try {
@@ -45,6 +45,18 @@ app.post('/api/image',upload.single('image'), async (req, res)=>{
             });
         }
 
+        // 2. Ekstrak tipe file dan data Base64
+        const matches = realImageData.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+            return res.status(400).json({ error: 'Invalid Base64 image format.' });
+        }
+
+        const type = matches[1]; // 'jpeg', 'png', dll.
+        const base64Data = matches[2]; // Data tanpa prefix
+
+        // 3. Konversi Base64 ke Buffer
+        const buffer = Buffer.from(base64Data, 'base64');
+
         const validMimeTypes = ["image/jpeg", "image/png", "image/gif"];
         if (!validMimeTypes.includes(req.file.mimetype)) {
             return res.status(400).send({
@@ -55,7 +67,7 @@ app.post('/api/image',upload.single('image'), async (req, res)=>{
         const params = {
             Bucket: BUCKET_NAME,
             Key: fileName,
-            Body: realImageData,
+            Body: buffer,
             ContentType: contentType
         }
 
