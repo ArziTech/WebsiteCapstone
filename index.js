@@ -34,13 +34,20 @@ app.post('/api/image',upload.single('image'), async (req, res)=>{
 
         const realImageData = req.file.buffer;
         const fileName = req.file.originalname;
-        const contentType = req.file.mimeType;
+        const contentType = req.file.mimetype;
 
-        if(!(realImageData && fileName && contentType)) {
-            return res.send({
+        if(!realImageData || !fileName) {
+            return res.status(400).send({
                 code: 400,
-                message: "Data not complete"
-            })
+                message: "No file uploaded."
+            });
+        }
+
+        const validMimeTypes = ["image/jpeg", "image/png", "image/gif"];
+        if (!validMimeTypes.includes(req.file.mimetype)) {
+            return res.status(400).send({
+                message: "Invalid file type. Only images are allowed."
+            });
         }
 
         const params = {
