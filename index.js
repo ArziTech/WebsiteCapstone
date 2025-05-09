@@ -30,6 +30,8 @@ app.get('/', (req, res) => {
 
 // to store image to s3
 app.post('/api/image',upload.single('image'), async (req, res)=>{
+    console.log("req.file", req.file)
+    console.log("req.body", req.body)
     try {
 
         const realImageData = req.file.buffer;
