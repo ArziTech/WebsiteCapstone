@@ -30,6 +30,10 @@ app.get('/', (req, res) => {
 
 // to store image to s3
 app.post('/api/image', upload.single('image'), async (req, res)=>{
+    const { base64Image, fileName } = req.body;
+
+    console.log("base64image", base64Image);
+
     console.log("req.file", req.file)
     console.log("req.body", req.body)
     try {
