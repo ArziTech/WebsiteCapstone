@@ -30,24 +30,28 @@ app.get('/', (req, res) => {
 
 // to store image to s3
 app.post('/api/image',upload.single('image'), async (req, res)=>{
-    console.log("req.body", req.body)
-    console.log("req.file", req.file)
+    try {
+        console.log("req.body", req.body)
+        console.log("req.file", req.file)
 
-    const realImageData = req.file.buffer;
-    const fileName = req.file.originalname;
+        const realImageData = req.file.buffer;
+        const fileName = req.file.originalname;
 
-    const params = {
-        Bucket: BUCKET_NAME,
-        Key: fileName,
-        Body: realImageData,
-        ContentType: req.file.mimeType
+        const params = {
+            Bucket: BUCKET_NAME,
+            Key: fileName,
+            Body: realImageData,
+            ContentType: req.file.mimeType
+        }
+
+        const command = new PutObjectCommand(params)
+
+        await s3.send(command);
+
+        return res.send({code: 200})
+    } catch (e) {
+        res.send({code: 500, error: e})
     }
-
-    const command = new PutObjectCommand(params)
-
-    await s3.send(command);
-
-    return res.send({code: 200})
 })
 
 app.listen(port, () => {
