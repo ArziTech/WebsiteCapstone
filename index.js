@@ -1,7 +1,10 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import multer from 'multer';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
+import {Pool} from "pg";
+
 dotenv.config();
 
 const app = express();
@@ -24,123 +27,153 @@ const s3 = new S3Client({
     region: BUCKET_REGION
 })
 
-app.get('/', (req, res) => {
-    return res.send("<h1>Hello World</h1>")
+const pool = new Pool({
+    user: 'postgres',
+    host: 'capstone-db.ch4wu2eowbo0.ap-southeast-2.rds.amazonaws.com',
+    database: 'capstone-db',
+    password: 'Capstone6Projec',
+    port: 5432,
+});
+
+// const pool = new Pool({
+//     connectionString: process.env.DATABASE_URL
+// });
+
+app.get('/',async (req, res) => {
+    // get this from database
+    const dbResponse = await pool.query("SELECT * FROM access_log");
+    return res.send(dbResponse);
+
+    const imageName = 'esp32cam.jpg';
+
+    const getObjectParams = {
+        Bucket: BUCKET_NAME,
+        Key: imageName
+    }
+
+    const command = new GetObjectCommand(getObjectParams)
+    const url = await getSignedUrl(s3, command, {expiresIn: 60 * 2 })
+    console.info(url)
+    return res.send(url)
 })
 
-// to store image to s3
-app.post('/api/image', upload.single('image'), async (req, res)=>{
-    // base64Image saya dapat undefined
-    const { base64Image, fileName } = req.body;
-
-    console.log("base64image", base64Image);
-
-    console.log("req.file", req.file)
-    console.log("req.body", req.body)
+// Endpoint untuk mengecek koneksi database
+app.get('/api/healthcheck', async (req, res) => {
+    let client;
     try {
+        // Dapatkan client dari pool
+        client = await pool.connect();
 
-        // req.file.buffer adalah Buffer object
-        const realImageData = req.file.buffer;
-        const fileName = req.file.originalname;
+        // Eksekusi query sederhana
+        const result = await client.query('SELECT NOW() as current_time');
+        const currentTime = result.rows[0].current_time;
 
-        if(!realImageData || !fileName) {
-            return res.status(400).send({
+        // Jika berhasil
+        res.status(200).json({
+            status: 'healthy',
+            database: 'connected',
+            currentTime: currentTime,
+            details: {
+                host: pool.options.host,
+                database: pool.options.database,
+                port: pool.options.port
+            }
+        });
+
+    } catch (error) {
+        // Jika error
+        res.status(503).json({
+            status: 'unhealthy',
+            database: 'disconnected',
+            error: error.message,
+            details: {
+                host: pool.options.host,
+                database: pool.options.database
+            }
+        });
+    } finally {
+        // Pastikan client selalu dilepas
+        if (client) client.release();
+    }
+});
+
+app.post('/api/image', upload.single('image'), async (req, res) => {
+    try {
+        // Validate request
+        if (!req.file) {
+            return res.status(400).json({
                 code: 400,
                 message: "No file uploaded."
             });
         }
 
-        // Convert Buffer to base64 string first
-        const base64String = realImageData.toString();
+        const { buffer, originalname: fileName, mimetype } = req.file;
 
-        // karena realImageData bukan string, maka error di baris ini
-        const matches = base64String.match(/^data:image\/(\w+);base64,(.+)$/);
-        if (matches && matches.length === 3) {
-            // If the base64 string includes the data URI prefix
-            const imageType = matches[1];
-            const pureBase64Data = matches[2];
-
-
-            const buffer = Buffer.from(pureBase64Data, 'base64');
-
-            const validMimeTypes = ["image/jpeg", "image/png", "image/gif"];
-            if (!validMimeTypes.includes(req.file.mimetype)) {
-                return res.status(400).send({
-                    message: "Invalid file type. Only images are allowed."
-                });
-            }
-
-            const params = {
-                Bucket: BUCKET_NAME,
-                Key: fileName,
-                Body: buffer,
-                ContentType: imageType
-            }
-
-            const command = new PutObjectCommand(params)
-
-            await s3.send(command);
-
-            return res.send({code: 200})
-        } else {
-
-            // If no data URI prefix found, assume it's pure base64
-            const buffer = Buffer.from(base64String, 'base64');
-            console.log("Heloooooo")
-            const validMimeTypes = ["image/jpeg", "image/png", "image/gif"];
-            if (!validMimeTypes.includes(req.file.mimetype)) {
-                return res.status(400).send({
-                    message: "Invalid file type. Only images are allowed."
-                });
-            }
-
-            const params = {
-                Bucket: BUCKET_NAME,
-                Key: fileName,
-                Body: buffer,
-                ContentType: req.file.mimetype
-            }
-
-            const command = new PutObjectCommand(params)
-
-            await s3.send(command);
-
-            return res.send({code: 200})
-            // ... continue with your S3 upload logic
-        }
-
-        const type = matches[1]; // 'jpeg', 'png', dll.
-
-        const buffer = Buffer.from(base64Data, 'base64');
-
+        // Validate file type
         const validMimeTypes = ["image/jpeg", "image/png", "image/gif"];
-        if (!validMimeTypes.includes(req.file.mimetype)) {
-            return res.status(400).send({
+        if (!validMimeTypes.includes(mimetype)) {
+            return res.status(400).json({
                 message: "Invalid file type. Only images are allowed."
             });
         }
 
+        let uploadBuffer;
+        let contentType = mimetype;
+
+        // Check if buffer contains base64 encoded data URI
+        const bufferString = buffer.toString();
+        const matches = bufferString.match(/^data:image\/(\w+);base64,(.+)$/);
+
+        if (matches && matches.length === 3) {
+            // Case 1: Data URI format (extract pure base64)
+            const imageType = matches[1];
+            const base64Data = matches[2];
+            uploadBuffer = Buffer.from(base64Data, 'base64');
+            contentType = `image/${imageType}`;
+        } else {
+            // Case 2: Raw buffer (direct upload)
+            uploadBuffer = buffer;
+        }
+
+        // Upload to S3
         const params = {
             Bucket: BUCKET_NAME,
             Key: fileName,
-            Body: buffer,
-            ContentType: type
+            Body: uploadBuffer,
+            ContentType: contentType
+        };
+
+        const putCommand = new PutObjectCommand(params)
+        await s3.send(putCommand);
+
+        // Log to PostgreSQL database
+        try {
+            await pool.query(
+                "INSERT INTO access_log (key) VALUES ($1)",
+                [fileName]
+            );
+            console.log(`Successfully logged ${fileName} to database`);
+        } catch (dbError) {
+            console.error("Database logging error:", dbError);
+            // Don't fail the request if logging fails
         }
 
-        const command = new PutObjectCommand(params)
+        return res.status(200).json({
+            code: 200,
+            message: "File uploaded and logged successfully",
+            filename: fileName
+        });
 
-        await s3.send(command);
-
-        return res.send({code: 200})
-    } catch (e) {
-        console.log({e})
-        res.send({code: 500, error: e})
+    } catch (error) {
+        console.error("Upload error:", error);
+        return res.status(500).json({
+            code: 500,
+            message: "File upload failed",
+            error: error.message
+        });
     }
-})
+});
 
 app.listen(port, () => {
-    if(!(BUCKET_NAME && BUCKET_REGION && BUCKET_ACCESS_KEY && BUCKET_SECRET_ACCESS_KEY)) {
-        throw new Error("Missing environment")
-    }
-    console.log(`Server running on port: ${port}`)
+    console.log(`Server running on port ${port}`);
 })
