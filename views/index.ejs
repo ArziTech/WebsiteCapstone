@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Capstone Project Kelompok 6</title>
+</head>
+<body>
+    <h1>Daftar Gambar (<%= count %>)</h1>
+
+    <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+        <thead>
+        <tr>
+            <th>No</th>
+            <th>Nama Gambar</th>
+            <th>Preview</th>
+            <th>URL</th>
+            <th>Access Time</th>
+        </tr>
+        </thead>
+        <tbody>
+        <% for (let i = 0; i < count; i++) { %>
+            <tr>
+                <td><%= i + 1 %></td>
+                <td><%= urls[i].imageName %></td>
+                <td style="text-align: center;">
+                    <img src="<%= urls[i].url %>" alt="<%= urls[i].imageName %>" style="max-height: 100px;">
+                </td>
+                <td>
+                    <a href="<%= urls[i].url %>" target="_blank">
+                        <%= urls[i].url.slice(0,90) %>
+                    </a>
+                </td>
+                <td><%= urls[i].access_time %></td>
+
+            </tr>
+        <% } %>
+        </tbody>
+    </table>
+</body>
+</html>

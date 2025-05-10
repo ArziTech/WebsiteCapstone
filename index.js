@@ -5,6 +5,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 import {Client, Pool} from "pg";
 import fs from 'fs'
+import moment from "moment";
 
 dotenv.config();
 
@@ -44,12 +45,14 @@ pool.connect();
 app.get('/',async (req, res) => {
     try {
         // 1. Get all access logs from database
-        const dbResponse = await pool.query("SELECT key FROM access_log ORDER BY created_at DESC");
+        const dbResponse = await pool.query("SELECT key, created_at FROM" +
+            " access_log ORDER BY created_at DESC");
 
         // 2. Process each image to generate signed URL
         const imageUrls = await Promise.all(
             dbResponse.rows.map(async (row) => {
                 const imageName = row.key;
+                const access_time = moment(row.created_at).format('LLLL')
 
                 const getObjectParams = {
                     Bucket: BUCKET_NAME,
@@ -62,6 +65,7 @@ app.get('/',async (req, res) => {
                     return {
                         imageName,
                         url,
+                        access_time
                     };
                 } catch (s3Error) {
                     console.error(`Error generating URL for ${imageName}:`, s3Error);
@@ -75,11 +79,15 @@ app.get('/',async (req, res) => {
         );
 
         // 3. Return response
-        return res.status(200).json({
-            code: 200,
+        // return res.status(200).json({
+        //     code: 200,
+        //     count: imageUrls.length,
+        //     urls: imageUrls
+        // });
+        return res.render('index.ejs', {
             count: imageUrls.length,
             urls: imageUrls
-        });
+        })
     } catch (error) {
         console.error("Error fetching image URLs:", error);
         return res.status(500).json({
