@@ -36,7 +36,7 @@ const pool = new Client({
     port: 5432,
     ssl: {
         rejectUnauthorized: true, // Untuk development (production gunakan cert
-        ca: fs.readFileSync('~/.ssh/db-key.pem').toString(),
+        ca: fs.readFileSync('db-key.pem').toString(),
     }
 });
 pool.connect();
