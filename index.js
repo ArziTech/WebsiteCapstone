@@ -3,7 +3,8 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
-import {Pool} from "pg";
+import {Client, Pool} from "pg";
+import fs from 'fs'
 
 dotenv.config();
 
@@ -27,34 +28,66 @@ const s3 = new S3Client({
     region: BUCKET_REGION
 })
 
-const pool = new Pool({
+const pool = new Client({
     user: 'postgres',
     host: 'capstone-db.ch4wu2eowbo0.ap-southeast-2.rds.amazonaws.com',
     database: 'capstone-db',
     password: 'Capstone6Projec',
     port: 5432,
+    ssl: {
+        rejectUnauthorized: true, // Untuk development (production gunakan cert
+        ca: fs.readFileSync('~/.ssh/db-key.pem').toString(),
+    }
 });
-
-// const pool = new Pool({
-//     connectionString: process.env.DATABASE_URL
-// });
+pool.connect();
 
 app.get('/',async (req, res) => {
-    // get this from database
-    const dbResponse = await pool.query("SELECT * FROM access_log");
-    return res.send(dbResponse);
+    try {
+        // 1. Get all access logs from database
+        const dbResponse = await pool.query("SELECT key FROM access_log ORDER BY created_at DESC");
 
-    const imageName = 'esp32cam.jpg';
+        // 2. Process each image to generate signed URL
+        const imageUrls = await Promise.all(
+            dbResponse.rows.map(async (row) => {
+                const imageName = row.key;
 
-    const getObjectParams = {
-        Bucket: BUCKET_NAME,
-        Key: imageName
+                const getObjectParams = {
+                    Bucket: BUCKET_NAME,
+                    Key: imageName
+                };
+
+                try {
+                    const command = new GetObjectCommand(getObjectParams);
+                    const url = await getSignedUrl(s3, command, { expiresIn: 120 }); // 2 minutes expiry
+                    return {
+                        imageName,
+                        url,
+                    };
+                } catch (s3Error) {
+                    console.error(`Error generating URL for ${imageName}:`, s3Error);
+                    return {
+                        imageName,
+                        error: 'Failed to generate URL',
+                        exists: false
+                    };
+                }
+            })
+        );
+
+        // 3. Return response
+        return res.status(200).json({
+            code: 200,
+            count: imageUrls.length,
+            urls: imageUrls
+        });
+    } catch (error) {
+        console.error("Error fetching image URLs:", error);
+        return res.status(500).json({
+            code: 500,
+            message: "Failed to retrieve image URLs",
+            error: error.message
+        });
     }
-
-    const command = new GetObjectCommand(getObjectParams)
-    const url = await getSignedUrl(s3, command, {expiresIn: 60 * 2 })
-    console.info(url)
-    return res.send(url)
 })
 
 // Endpoint untuk mengecek koneksi database
@@ -65,7 +98,7 @@ app.get('/api/healthcheck', async (req, res) => {
         client = await pool.connect();
 
         // Eksekusi query sederhana
-        const result = await client.query('SELECT NOW() as current_time');
+        const result = await pool.query('SELECT NOW() as current_time');
         const currentTime = result.rows[0].current_time;
 
         // Jika berhasil
@@ -74,9 +107,9 @@ app.get('/api/healthcheck', async (req, res) => {
             database: 'connected',
             currentTime: currentTime,
             details: {
-                host: pool.options.host,
-                database: pool.options.database,
-                port: pool.options.port
+                // host: pool.options.host,
+                // database: pool.options.database,
+                // port: pool.options.port
             }
         });
 
@@ -87,8 +120,8 @@ app.get('/api/healthcheck', async (req, res) => {
             database: 'disconnected',
             error: error.message,
             details: {
-                host: pool.options.host,
-                database: pool.options.database
+                // host: pool.options.host,
+                // database: pool.options.database
             }
         });
     } finally {
@@ -126,6 +159,7 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
 
         if (matches && matches.length === 3) {
             // Case 1: Data URI format (extract pure base64)
+            console.log('extract')
             const imageType = matches[1];
             const base64Data = matches[2];
             uploadBuffer = Buffer.from(base64Data, 'base64');
