@@ -6,38 +6,53 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Capstone Project Kelompok 6</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body>
-    <h1>Daftar Gambar (<%= count %>)</h1>
-
-    <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse;">
-        <thead>
-        <tr>
-            <th>No</th>
-            <th>Nama Gambar</th>
-            <th>Preview</th>
-            <th>URL</th>
-            <th>Access Time</th>
-        </tr>
-        </thead>
-        <tbody>
-        <% for (let i = 0; i < count; i++) { %>
-            <tr>
-                <td><%= i + 1 %></td>
-                <td><%= urls[i].imageName %></td>
-                <td style="text-align: center;">
-                    <img src="<%= urls[i].url %>" alt="<%= urls[i].imageName %>" style="max-height: 100px;">
-                </td>
-                <td>
-                    <a href="<%= urls[i].url %>" target="_blank">
-                        <%= urls[i].url.slice(0,90) %>
-                    </a>
-                </td>
-                <td><%= urls[i].access_time %></td>
-
-            </tr>
-        <% } %>
-        </tbody>
-    </table>
+    <section class="container mx-auto">
+        <h1>Daftar Gambar (<%= count %>)</h1>
+        <table border="1" cellpadding="8" cellspacing="0"
+           style="width:100%; border-collapse: collapse;"
+        >
+            <thead>
+                <tr class="flex border">
+                    <th class="text-center border-r grid place-content-center
+                    w-10">No</th>
+                    <th class="text-center border-r grid place-content-center
+                    w-40">Nama
+                        Gambar</th>
+                    <th class="text-center border-r grid place-content-center
+                    grow">Preview</th>
+                    <th class="text-center  grid place-content-center
+                    grow-0 px-4 w-[200px]">Access
+                        Time</th>
+                </tr>
+            </thead>
+            <tbody>
+            <% for (let i = 0; i < count; i++) { %>
+                <tr class="border flex">
+                    <td class="grid place-content-center border-r text-center
+                    w-10">
+                        <%= i + 1 %>
+                    </td>
+                    <td class="grid place-content-center border-r text-center
+                    w-40">
+                        <%= urls[i].imageName %>
+                    </td>
+                    <td class="border-r grid place-content-center p-2 grow"
+                        style="text-align:center;">
+                        <a href="<%= urls[i].url %>" target="_blank">
+                            <img src="<%= urls[i].url %>" alt="<%= urls[i].imageName %>" style="max-height: 100px;">
+                        </a>
+                    </td>
+                    <td class="grid place-content-center px-4 text-center
+                   w-[200px]">
+                        <%= urls[i].access_time %>
+                    </td>
+                </tr>
+            <% } %>
+            </tbody>
+        </table>
+    </section>
 </body>
 </html>

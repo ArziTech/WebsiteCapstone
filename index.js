@@ -7,6 +7,7 @@ import {Client, Pool} from "pg";
 import fs from 'fs'
 import moment from "moment";
 
+moment.locale('id');
 dotenv.config();
 
 const app = express();
