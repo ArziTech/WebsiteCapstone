@@ -256,6 +256,22 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
         await s3.send(command);
 
 
+        // Log to PostgreSQL database
+        try {
+            await pool.query(
+                "INSERT INTO access_log (key) VALUES ($1)",
+                [fileName]
+            );
+        } catch (dbError) {
+            console.error("Database logging error:", dbError);
+            return res.status(500).json({
+                code: 500,
+                message: "File upload failed",
+                error: error.message
+            });
+            // Don't fail the request if logging fails
+        }
+
         return res.status(200).json({
             code: 200,
             message: "File uploaded and logged successfully",
