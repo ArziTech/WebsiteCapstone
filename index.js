@@ -224,7 +224,7 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
             console.log("matches[1]", matches[1])
             console.log("matches[2]", matches[2])
             // If the base64 string includes the data URI prefix
-            contentType = matches[1];
+            contentType = "image/"+matches[1];
             const pureBase64Data = matches[2];
             processedBuffer = Buffer.from(pureBase64Data, 'base64');
         } else {
