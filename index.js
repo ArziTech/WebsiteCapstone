@@ -101,11 +101,7 @@ app.get('/',async (req, res) => {
 
 // Endpoint untuk mengecek koneksi database
 app.get('/api/healthcheck', async (req, res) => {
-    let client;
     try {
-        // Dapatkan client dari pool
-        client = await pool.connect();
-
         // Eksekusi query sederhana
         const result = await pool.query('SELECT NOW() as current_time');
         const currentTime = result.rows[0].current_time;
@@ -133,9 +129,6 @@ app.get('/api/healthcheck', async (req, res) => {
                 // database: pool.options.database
             }
         });
-    } finally {
-        // Pastikan client selalu dilepas
-        if (client) client.release();
     }
 });
 
