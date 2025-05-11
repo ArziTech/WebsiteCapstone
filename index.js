@@ -208,11 +208,14 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
             });
         }
 
+
+        console.dir(req.file, {depth: null, colors: true})
+
         // Convert Buffer to base64 string first
         const base64String = realImageData.toString();
 
-        console.log({realImageData})
-        console.log({base64String})
+        // console.log({realImageData})
+        // console.log({base64String})
         // karena realImageData bukan string, maka error di baris ini
         const matches = base64String.match(/^data:image\/(\w+);base64,(.+)$/);
         if (matches && matches.length === 3) {
@@ -226,8 +229,8 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
             processedBuffer = Buffer.from(pureBase64Data, 'base64');
         } else {
             console.log("not matches")
-            console.log({matches})
-            console.log("matches.length", matches.length)
+            // console.log({matches})
+            // console.log("matches.length", matches.length)
             processedBuffer = realImageData;
             contentType = req.file.mimetype;
         }
