@@ -224,6 +224,7 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
             processedBuffer = Buffer.from(pureBase64Data, 'base64');
         } else {
             console.log("not matches")
+            console.log({matches})
             console.log("matches.length", matches.length)
             processedBuffer = realImageData;
             contentType = req.file.mimetype;
