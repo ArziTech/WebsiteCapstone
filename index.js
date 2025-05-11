@@ -220,9 +220,9 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
         const matches = base64String.match(/^data:image\/(\w+);base64,(.+)$/);
         if (matches && matches.length === 3) {
             console.log("extract")
+            console.log("matches[0]", matches[0])
             console.log("matches[1]", matches[1])
             console.log("matches[2]", matches[2])
-            console.log("matches[3]", matches[3])
             // If the base64 string includes the data URI prefix
             contentType = matches[1];
             const pureBase64Data = matches[2];
