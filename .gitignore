@@ -7,3 +7,4 @@
 
 .env
 db-key.pem
+**.pem

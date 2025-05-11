@@ -23,9 +23,13 @@
                         Gambar</th>
                     <th class="text-center border-r grid place-content-center
                     grow">Preview</th>
-                    <th class="text-center  grid place-content-center
+                    <th class="text-center border-r  grid place-content-center
                     grow-0 px-4 w-[200px]">Access
                         Time</th>
+                    <th class="text-center  grid place-content-center
+                    grow-0 px-4 w-[200px]">
+                        Action
+                    </th>
                 </tr>
             </thead>
             <tbody>
@@ -45,14 +49,54 @@
                             <img src="<%= urls[i].url %>" alt="<%= urls[i].imageName %>" style="max-height: 100px;">
                         </a>
                     </td>
-                    <td class="grid place-content-center px-4 text-center
-                   w-[200px]">
+                    <td class="grid border-r place-content-center px-4
+                    text-center w-[200px]">
                         <%= urls[i].access_time %>
+                    </td>
+                    <td class="grid place-content-center px-4 w-[200px]">
+                        <form onsubmit="deleteImage(event, '<%= urls[i].imageName %>')">
+                            <button
+                                    type="submit"
+                                    class="bg-red-500 rounded-md text-white px-4 py-2"
+                            >
+                                <%- include('../trash.svg') %>
+                            </button>
+                        </form>
                     </td>
                 </tr>
             <% } %>
             </tbody>
+
         </table>
+        <script>
+            async function deleteImage(event, imageName) {
+                event.preventDefault();
+
+                console.log(imageName)
+
+                if (confirm('Yakin ingin menghapus gambar ini?')) {
+                    try {
+                        const response = await fetch(`/api/image/${encodeURIComponent(imageName)}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+
+                        console.log({response})
+
+                        if (response.ok) {
+                            alert('Gambar berhasil dihapus!');
+                            window.location.reload();
+                        } else {
+                            alert('Gagal menghapus gambar!');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                }
+            }
+        </script>
     </section>
 </body>
 </html>

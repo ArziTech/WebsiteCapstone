@@ -1,11 +1,16 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import multer from 'multer';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
-import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
-import {Client, Pool} from "pg";
+import {
+    S3Client,
+    PutObjectCommand,
+    DeleteObjectCommand
+} from '@aws-sdk/client-s3'
+import {getSignedUrl} from "@aws-sdk/cloudfront-signer";
+import {Pool} from "pg";
 import fs from 'fs'
 import moment from "moment";
+import {CloudFrontClient, CreateInvalidationCommand} from "@aws-sdk/client-cloudfront";
 
 moment.locale('id');
 dotenv.config();
@@ -16,26 +21,35 @@ const port = 3000;
 const storage = multer.memoryStorage()
 const upload = multer({storage: storage})
 
-const BUCKET_NAME = process.env.BUCKET_NAME;
-const BUCKET_REGION = process.env.BUCKET_REGION;
-const BUCKET_ACCESS_KEY = process.env.BUCKET_ACCESS_KEY;
-const BUCKET_SECRET_ACCESS_KEY = process.env.BUCKET_SECRET_ACCESS_KEY;
+const dbUrl = process.env.DATABASE_URL;
 
+const bucketName = process.env.BUCKET_NAME;
+const bucketRegion = process.env.BUCKET_REGION;
+const bucketAccessKey = process.env.BUCKET_ACCESS_KEY;
+const bucketSecretAccessKey = process.env.BUCKET_SECRET_ACCESS_KEY;
+
+const cloudFrontPrivateKey = process.env.CLOUDFRONT_PRIVATE_KEY;
+const keyPairId = process.env.CLOUDFRONT_KEY_PAIR_ID;
+const distributionId = process.env.CLOUDFRONT_DISTRIBUTION_ID;
 
 const s3 = new S3Client({
     credentials: {
-        accessKeyId: BUCKET_ACCESS_KEY,
-        secretAccessKey: BUCKET_SECRET_ACCESS_KEY
+        accessKeyId: bucketAccessKey,
+        secretAccessKey: bucketSecretAccessKey
     },
-    region: BUCKET_REGION
+    region: bucketRegion
 })
 
-const pool = new Client({
-    user: 'postgres',
-    host: 'capstone-db.ch4wu2eowbo0.ap-southeast-2.rds.amazonaws.com',
-    database: 'capstone-db',
-    password: 'Capstone6Projec',
-    port: 5432,
+const cloudfrontClient = new CloudFrontClient({
+    credentials: {
+        accessKeyId: bucketAccessKey,
+        secretAccessKey: bucketSecretAccessKey
+    },
+    region: bucketRegion
+})
+
+const pool = new Pool({
+    connectionString: dbUrl,
     ssl: {
         rejectUnauthorized: true, // Untuk development (production gunakan cert
         ca: fs.readFileSync('db-key.pem').toString(),
@@ -45,46 +59,37 @@ pool.connect();
 
 app.get('/',async (req, res) => {
     try {
-        // 1. Get all access logs from database
         const dbResponse = await pool.query("SELECT key, created_at FROM" +
             " access_log ORDER BY created_at DESC");
 
-        // 2. Process each image to generate signed URL
-        const imageUrls = await Promise.all(
-            dbResponse.rows.map(async (row) => {
-                const imageName = row.key;
-                const access_time = moment(row.created_at).format('LLLL')
+        const imageUrls =  dbResponse.rows.map((row) => {
+            const imageName = row.key;
+            const access_time = moment(row.created_at).format('LLLL')
 
-                const getObjectParams = {
-                    Bucket: BUCKET_NAME,
-                    Key: imageName
+            try {
+                // const command = new GetObjectCommand(getObjectParams);
+                const url = getSignedUrl({
+                    url: "https://d2c0wqkau15v7n.cloudfront.net/" + imageName,
+                    dateLessThan: new Date(Date.now() + 1000 * 60 * 60 * 24),
+                    privateKey: cloudFrontPrivateKey,
+                    keyPairId: keyPairId
+                });
+                // const url = "https://d2c0wqkau15v7n.cloudfront.net/" +imageName
+                return {
+                    imageName,
+                    url,
+                    access_time
                 };
+            } catch (s3Error) {
+                console.error(`Error generating URL for ${imageName}:`, s3Error);
+                return {
+                    imageName,
+                    error: 'Failed to generate URL',
+                    exists: false
+                };
+            }
+        })
 
-                try {
-                    const command = new GetObjectCommand(getObjectParams);
-                    const url = await getSignedUrl(s3, command, { expiresIn: 120 }); // 2 minutes expiry
-                    return {
-                        imageName,
-                        url,
-                        access_time
-                    };
-                } catch (s3Error) {
-                    console.error(`Error generating URL for ${imageName}:`, s3Error);
-                    return {
-                        imageName,
-                        error: 'Failed to generate URL',
-                        exists: false
-                    };
-                }
-            })
-        );
-
-        // 3. Return response
-        // return res.status(200).json({
-        //     code: 200,
-        //     count: imageUrls.length,
-        //     urls: imageUrls
-        // });
         return res.render('index.ejs', {
             count: imageUrls.length,
             urls: imageUrls
@@ -99,7 +104,54 @@ app.get('/',async (req, res) => {
     }
 })
 
-// Endpoint untuk mengecek koneksi database
+app.get('/api/get-images', async (req, res) => {
+    try {
+        const dbResponse = await pool.query("SELECT key, created_at FROM" +
+            " access_log ORDER BY created_at DESC");
+
+        const imageUrls =  dbResponse.rows.map((row) => {
+            const imageName = row.key;
+            const access_time = moment(row.created_at).format('LLLL')
+
+            try {
+                // const command = new GetObjectCommand(getObjectParams);
+                const url = getSignedUrl({
+                    url: "https://d2c0wqkau15v7n.cloudfront.net/" + imageName,
+                    dateLessThan: new Date(Date.now() + 1000 * 60 * 60 * 24),
+                    privateKey: cloudFrontPrivateKey,
+                    keyPairId: keyPairId
+                });
+                // const url = "https://d2c0wqkau15v7n.cloudfront.net/" +imageName
+                return {
+                    imageName,
+                    url,
+                    access_time
+                };
+            } catch (s3Error) {
+                console.error(`Error generating URL for ${imageName}:`, s3Error);
+                return {
+                    imageName,
+                    error: 'Failed to generate URL',
+                    exists: false
+                };
+            }
+        })
+
+        // 3. Return response
+        return res.status(200).json({
+            count: imageUrls.length,
+            urls: imageUrls
+        });
+    } catch (error) {
+        console.error("Error fetching image URLs:", error);
+        return res.status(500).json({
+            code: 500,
+            message: "Failed to retrieve image URLs",
+            error: error.message
+        });
+    }
+})
+
 app.get('/api/healthcheck', async (req, res) => {
     try {
         // Eksekusi query sederhana
@@ -161,7 +213,6 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
 
         if (matches && matches.length === 3) {
             // Case 1: Data URI format (extract pure base64)
-            console.log('extract')
             const imageType = matches[1];
             const base64Data = matches[2];
             uploadBuffer = Buffer.from(base64Data, 'base64');
@@ -173,7 +224,7 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
 
         // Upload to S3
         const params = {
-            Bucket: BUCKET_NAME,
+            Bucket: bucketName,
             Key: fileName,
             Body: uploadBuffer,
             ContentType: contentType
@@ -188,9 +239,13 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
                 "INSERT INTO access_log (key) VALUES ($1)",
                 [fileName]
             );
-            console.log(`Successfully logged ${fileName} to database`);
         } catch (dbError) {
             console.error("Database logging error:", dbError);
+            return res.status(500).json({
+                code: 500,
+                message: "File upload failed",
+                error: error.message
+            });
             // Don't fail the request if logging fails
         }
 
@@ -209,6 +264,47 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
         });
     }
 });
+
+app.delete('/api/image/:id', async (req, res) => {
+    const imageKey = req.params.id;
+    let deletedRow  = 0;
+    try {
+        const result = await pool.query("DELETE FROM access_log WHERE key =($1)", [imageKey]);
+        deletedRow = result.rowCount;
+    } catch (e) {
+        console.error("something went wrong")
+        console.error(e)
+        return res.status(500)
+    }
+
+    const params = {
+        Bucket: bucketName,
+        Key: imageKey
+    }
+    const command = new DeleteObjectCommand(params)
+    await s3.send(command);
+
+    // send invalid command to cloudfront
+    const invalidationParams = {
+        DistributionId: distributionId,
+        InvalidationBatch: {
+            CallerReference: imageKey, //image name
+            Paths: {
+                Quantity: 1,
+                Items: [
+                    "/" + imageKey
+                ]
+            }
+        }
+    }
+    const invalidationCommand = new CreateInvalidationCommand(invalidationParams)
+    await cloudfrontClient.send(invalidationCommand)
+
+    return res.status(200).json({
+        ok: true,
+        deletedRow: deletedRow
+    })
+})
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
