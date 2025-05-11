@@ -194,60 +194,55 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
             });
         }
 
-        const { buffer, originalname: fileName, mimetype } = req.file;
+        const { buffer, originalname: fileName } = req.file;
 
-        // Validate file type
-        const validMimeTypes = ["image/jpeg", "image/png", "image/gif"];
-        if (!validMimeTypes.includes(mimetype)) {
-            return res.status(400).json({
+        const realImageData = buffer;
+
+
+        let contentType = '';
+        let processedBuffer;
+        if(!realImageData || !fileName) {
+            return res.status(400).send({
+                code: 400,
+                message: "No file uploaded."
+            });
+        }
+
+        // Convert Buffer to base64 string first
+        const base64String = realImageData.toString();
+
+        // karena realImageData bukan string, maka error di baris ini
+        const matches = base64String.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+            // If the base64 string includes the data URI prefix
+            contentType = matches[1];
+            const pureBase64Data = matches[2];
+            processedBuffer = Buffer.from(pureBase64Data, 'base64');
+        } else {
+            processedBuffer = realImageData;
+            contentType = req.file.mimetype;
+        }
+
+        // return res.send(req.file)
+
+        const validMimeTypes = ["image/jpeg","image/jpg", "image/png", "image/gif"];
+        if (!validMimeTypes.includes(contentType)) {
+            return res.status(400).send({
                 message: "Invalid file type. Only images are allowed."
             });
         }
 
-        let uploadBuffer;
-        let contentType = mimetype;
-
-        // Check if buffer contains base64 encoded data URI
-        const bufferString = buffer.toString();
-        const matches = bufferString.match(/^data:image\/(\w+);base64,(.+)$/);
-
-        if (matches && matches.length === 3) {
-            // Case 1: Data URI format (extract pure base64)
-            const imageType = matches[1];
-            const base64Data = matches[2];
-            uploadBuffer = Buffer.from(base64Data, 'base64');
-            contentType = `image/${imageType}`;
-        } else {
-            // Case 2: Raw buffer (direct upload)
-            uploadBuffer = buffer;
-        }
-
-        // Upload to S3
         const params = {
             Bucket: bucketName,
             Key: fileName,
-            Body: uploadBuffer,
+            Body: processedBuffer,
             ContentType: contentType
-        };
-
-        const putCommand = new PutObjectCommand(params)
-        await s3.send(putCommand);
-
-        // Log to PostgreSQL database
-        try {
-            await pool.query(
-                "INSERT INTO access_log (key) VALUES ($1)",
-                [fileName]
-            );
-        } catch (dbError) {
-            console.error("Database logging error:", dbError);
-            return res.status(500).json({
-                code: 500,
-                message: "File upload failed",
-                error: error.message
-            });
-            // Don't fail the request if logging fails
         }
+
+        const command = new PutObjectCommand(params)
+
+        await s3.send(command);
+
 
         return res.status(200).json({
             code: 200,
