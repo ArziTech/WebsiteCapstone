@@ -104,7 +104,7 @@ app.get('/',async (req, res) => {
     }
 })
 
-app.get('/api/get-images', async (req, res) => {
+app.get('/api/images', async (req, res) => {
     try {
         const dbResponse = await pool.query("SELECT key, created_at FROM" +
             " access_log ORDER BY created_at DESC");
@@ -184,7 +184,7 @@ app.get('/api/healthcheck', async (req, res) => {
     }
 });
 
-app.post('/api/image', upload.single('image'), async (req, res) => {
+app.post('/api/images', upload.single('image'), async (req, res) => {
     try {
         // Validate request
         if (!req.file) {
@@ -194,12 +194,10 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
             });
         }
 
-        const { buffer, originalname: fileName } = req.file;
+        const { buffer, originalname: fileName, mimetype } = req.file;
 
         const realImageData = buffer;
 
-
-        let contentType = '';
         let processedBuffer;
         if(!realImageData || !fileName) {
             return res.status(400).send({
@@ -208,37 +206,20 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
             });
         }
 
-
-        console.dir(req.file, {depth: null, colors: true})
-
-        // Convert Buffer to base64 string first
+        // console.dir(req.file, {depth: null, colors: true})
         const base64String = realImageData.toString();
 
-        // console.log({realImageData})
-        // console.log({base64String})
-        // karena realImageData bukan string, maka error di baris ini
         const matches = base64String.match(/^data:image\/(\w+);base64,(.+)$/);
         if (matches && matches.length === 3) {
-            console.log("extract")
-            console.log("matches[0]", matches[0])
-            console.log("matches[1]", matches[1])
-            console.log("matches[2]", matches[2])
             // If the base64 string includes the data URI prefix
-            contentType = "image/"+matches[1];
             const pureBase64Data = matches[2];
             processedBuffer = Buffer.from(pureBase64Data, 'base64');
         } else {
-            console.log("not matches")
-            // console.log({matches})
-            // console.log("matches.length", matches.length)
             processedBuffer = realImageData;
-            contentType = req.file.mimetype;
         }
 
-        // return res.send(req.file)
-
         const validMimeTypes = ["image/jpeg","image/jpg", "image/png", "image/gif"];
-        if (!validMimeTypes.includes(contentType)) {
+        if (!validMimeTypes.includes(mimetype)) {
             return res.status(400).send({
                 message: "Invalid file type. Only images are allowed."
             });
@@ -248,7 +229,7 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
             Bucket: bucketName,
             Key: fileName,
             Body: processedBuffer,
-            ContentType: contentType
+            ContentType: mimetype
         }
 
         const command = new PutObjectCommand(params)
@@ -269,17 +250,39 @@ app.post('/api/image', upload.single('image'), async (req, res) => {
                 message: "File upload failed",
                 error: error.message
             });
-            // Don't fail the request if logging fails
         }
 
-        return res.status(200).json({
-            code: 200,
+        return res.status(201).json({
             message: "File uploaded and logged successfully",
             filename: fileName
         });
 
     } catch (error) {
         console.error("Upload error:", error);
+
+        const params = {
+            Bucket: bucketName,
+            Key: fileName
+        }
+        const command = new DeleteObjectCommand(params)
+        await s3.send(command);
+
+        // send invalid command to cloudfront
+        const invalidationParams = {
+            DistributionId: distributionId,
+            InvalidationBatch: {
+                CallerReference: fileName, //image name
+                Paths: {
+                    Quantity: 1,
+                    Items: [
+                        "/" + fileName
+                    ]
+                }
+            }
+        }
+        const invalidationCommand = new CreateInvalidationCommand(invalidationParams)
+        await cloudfrontClient.send(invalidationCommand)
+
         return res.status(500).json({
             code: 500,
             message: "File upload failed",
