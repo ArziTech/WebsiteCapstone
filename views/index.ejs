@@ -41,20 +41,23 @@
                     </td>
                     <td class="grid place-content-center border-r text-center
                     w-40">
-                        <%= urls[i].imageName %>
+                        <%= access_log[i].imageName %>
                     </td>
                     <td class="border-r grid place-content-center p-2 grow"
                         style="text-align:center;">
-                        <a href="<%= urls[i].url %>" target="_blank">
-                            <img src="<%= urls[i].url %>" alt="<%= urls[i].imageName %>" style="max-height: 100px;">
+                        <a href="<%= access_log[i].url %>" target="_blank">
+                            <img src="<%= access_log[i].url %>" alt="<%=
+                                access_log[i].imageName %>" style="max-height:
+                                100px;">
                         </a>
                     </td>
                     <td class="grid border-r place-content-center px-4
                     text-center w-[200px]">
-                        <%= urls[i].access_time %>
+                        <%= access_log[i].access_time %>
                     </td>
                     <td class="grid place-content-center px-4 w-[200px]">
-                        <form onsubmit="deleteImage(event, '<%= urls[i].imageName %>')">
+                        <form onsubmit="deleteImage(event, '<%= access_log[i]
+                                .imageName %>')">
                             <button
                                     type="submit"
                                     class="bg-red-500 rounded-md text-white px-4 py-2"
