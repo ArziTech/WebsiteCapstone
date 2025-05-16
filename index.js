@@ -1,6 +1,6 @@
 import express from 'express';
 import moment from "moment";
-
+import {parse} from "valibot";
 import pool from './lib/db.js'
 
 import modelRouter from './routes/predict.js'
@@ -8,6 +8,8 @@ import imageRouter from './routes/image.js'
 import dbRouter from './routes/db.js'
 
 import {getAllAccessLog} from "./models/access_log.js";
+import {ConfigSchema} from "./utils/schema.js";
+import * as config from './lib/config.js'
 
 moment.locale('id');
 
@@ -38,6 +40,13 @@ app.use('/predict', modelRouter);
 app.use('/db', dbRouter);
 
 app.listen(port, () => {
-    pool.connect();
-    console.log(`Server running on port ${port}`);
+    try {
+        parse(ConfigSchema, config)
+        pool.connect();
+
+        console.log(`Server running on port ${port}`);
+    } catch{
+
+        return console.error("Missing environment variable");
+    }
 })
