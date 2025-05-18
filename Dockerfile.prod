@@ -1,0 +1,36 @@
+# ========== Builder Stage ==========
+FROM node:20-alpine as builder
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production  # Hanya install production dependencies
+
+# ========== Runner Stage ==========
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy dari builder
+COPY --from=builder /app/node_modules ./node_modules
+COPY . .
+
+# Environment variables
+ENV NODE_ENV=production \
+    PORT=3000
+
+# Optimasi
+RUN npm cache clean --force && \
+    apk add --no-cache curl  # Untuk health check
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Port
+EXPOSE 3000
+
+# User non-root
+USER node
+
+# Run aplikasi
+CMD ["node", "index.js"]

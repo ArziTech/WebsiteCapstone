@@ -1,0 +1,20 @@
+# Base image
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files terpisah untuk caching
+COPY package*.json ./
+
+# Install dependencies (termasuk devDependencies)
+RUN npm install -g nodemon && npm install
+
+# Copy semua file
+COPY . .
+
+# Port yang digunakan
+EXPOSE 3000
+
+# Command khusus development
+CMD ["nodemon", "index.js"]  # Asumsi ada script "dev" di package.json

@@ -8,5 +8,6 @@ export const ConfigSchema = object({
     cloudFrontPrivateKey: string(),
     keyPairId: string(),
     distributionId: string(),
-    dbKeySslCertificate: string()
+    dbKeySslCertificate: string(),
+    modelUrl: string()
 })
