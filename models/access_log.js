@@ -1,8 +1,7 @@
 import pool from '../lib/db.js'
-import {getSignedUrl} from "@aws-sdk/cloudfront-signer";
 
 import moment from "moment";
-import {cloudFrontPrivateKey, keyPairId} from "../lib/config.js";
+import {cfGetSignedUrl} from "../utils/cloudfront.js";
 
 export async function getAllAccessLog() {
     const dbResponse = await pool.query("SELECT key, created_at FROM" +
@@ -13,14 +12,7 @@ export async function getAllAccessLog() {
         const access_time = moment(row.created_at).format('LLLL')
 
         try {
-            // const command = new GetObjectCommand(getObjectParams);
-            const url = getSignedUrl({
-                url: "https://d2c0wqkau15v7n.cloudfront.net/" + imageName,
-                dateLessThan: new Date(Date.now() + 1000 * 60 * 60 * 24),
-                privateKey: cloudFrontPrivateKey,
-                keyPairId: keyPairId
-            });
-            // const url = "https://d2c0wqkau15v7n.cloudfront.net/" +imageName
+            const url = cfGetSignedUrl(imageName)
             return {
                 imageName,
                 url,

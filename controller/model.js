@@ -27,6 +27,18 @@ export async function predict(req, res) {
 
         const result = await axios.post(`http://3.24.137.25:5000/`, formData);
 
+        const matrix_result = result.data.prediction_embed
+        console.log(matrix_result)
+
+        const user = {
+            name: "",
+            embed_matrix: "",
+            imageLink: ""
+        }
+
+        await registerNewUser(user);
+
+
         return res.status(200).json({
             data: result.data
         })

@@ -1,7 +1,24 @@
 import {CreateInvalidationCommand} from "@aws-sdk/client-cloudfront";
-import {distributionId} from "../lib/config.js";
+import {
+    cloudFrontPrivateKey,
+    distributionId,
+    keyPairId
+} from "../lib/config.js";
 import cloudfrontClient from "../lib/cloudfrontclient.js";
+import {getSignedUrl} from "@aws-sdk/cloudfront-signer";
 
+
+export function cfGetSignedUrl(imageName) {
+
+    const url = getSignedUrl({
+        url: "https://d2c0wqkau15v7n.cloudfront.net/" + imageName,
+        dateLessThan: new Date(Date.now() + 1000 * 60 * 60 * 24),
+        privateKey: cloudFrontPrivateKey,
+        keyPairId: keyPairId
+    });
+
+    return url;
+}
 export async function invalidateLink(fileName) {
     // send invalid command to cloudfront
     const invalidationParams = {

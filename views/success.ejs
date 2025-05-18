@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('header') %>
+</head>
+<body class="bg-gray-100 min-h-screen">
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
+        <!-- Success Icon -->
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+            <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>
+
+        <!-- Success Message -->
+        <h2 class="text-lg font-medium text-gray-900 text-center mb-2">Registrasi Berhasil!</h2>
+        <p class="text-sm text-gray-500 text-center mb-6">
+            Terima kasih telah mendaftar. Data Anda telah tersimpan.
+        </p>
+
+        <!-- User Data Display -->
+        <div class="bg-gray-50 p-4 rounded-lg mb-6">
+            <div class="flex items-center space-x-4">
+                <% if (image) { %>
+                    <img class="h-12 w-12 rounded-full object-cover" src="<%=
+                        image %>" alt="Profile">
+                <% } %>
+                <div>
+                    <h3 class="text-sm font-medium text-gray-900"><%= name
+                        %></h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col space-y-3">
+            <a href="/api/users" class="w-full flex justify-center py-2 px-4
+            border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Ke Dashboard
+            </a>
+            <a href="/register" class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Daftarkan User Baru
+            </a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

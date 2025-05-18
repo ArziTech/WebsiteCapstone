@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('header') %>
+</head>
+<body class="bg-gray-100 min-h-screen">
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6">User Registration</h1>
+
+        <form action="/api/user" method="POST" enctype="multipart/form-data"
+              class="space-y-4">
+            <!-- Name Field -->
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                <input type="text" id="name" name="name" required
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+
+            <!-- Image Upload -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Profile Image</label>
+                <div class="mt-1 flex items-center">
+                    <div class="flex-1">
+                        <input type="file" id="image" name="image" accept="image/*" required
+                               class="block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-md file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-indigo-50 file:text-indigo-700
+                                hover:file:bg-indigo-100">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview Image -->
+            <div id="imagePreview" class="hidden mt-2">
+                <img id="preview" class="h-32 w-32 rounded-full object-cover">
+            </div>
+
+            <!-- Submit Button -->
+            <div>
+                <button type="submit"
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Register
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Image preview functionality
+    document.getElementById('image').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('preview').src = event.target.result;
+                document.getElementById('imagePreview').classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+</body>
+</html>

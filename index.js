@@ -6,6 +6,8 @@ import pool from './lib/db.js'
 import modelRouter from './routes/predict.js'
 import imageRouter from './routes/image.js'
 import dbRouter from './routes/db.js'
+import registerRouter from './routes/register.js'
+import userRouter from './routes/user.js'
 
 import {getAllAccessLog} from "./models/access_log.js";
 import {ConfigSchema} from "./utils/schema.js";
@@ -38,6 +40,8 @@ app.get('/',async (req, res) => {
 app.use('/api', imageRouter);
 app.use('/predict', modelRouter);
 app.use('/db', dbRouter);
+app.use('/api', userRouter);
+app.use('/register', registerRouter);
 
 app.listen(port, () => {
     try {
