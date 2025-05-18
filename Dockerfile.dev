@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies (termasuk devDependencies)
-RUN npm install -g nodemon && npm install
+RUN npm install
 
 # Copy semua file
 COPY . .
@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 3000
 
 # Command khusus development
-CMD ["nodemon", "index.js"]  # Asumsi ada script "dev" di package.json
+CMD ["npm", "run", "dev"]  # Asumsi ada script "dev" di package.json

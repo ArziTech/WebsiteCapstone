@@ -33,4 +33,4 @@ EXPOSE 3000
 USER node
 
 # Run aplikasi
-CMD ["node", "index.js"]
+CMD ["npm", "start"]
