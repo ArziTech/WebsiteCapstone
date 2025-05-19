@@ -26,7 +26,8 @@ export async function getAllImages(req, res) {
 
 function cosineSimilarity(vecA, vecB) {
     if (vecA.length !== vecB.length) {
-        throw new Error("Vectors must be the same length");
+
+        throw new Error(`Vectors must be the same length cannot ${vecA.length} w/ ${vecB.length}`);
     }
 
     let dot = 0, normA = 0, normB = 0;
@@ -93,7 +94,7 @@ export async function saveNewImage(req, res) {
 
 
         await putObject(fileName, processedBuffer, mimetype)
-        const response =await saveImageToDB(fileName)
+        const response = await saveImageToDB(fileName)
         if(response.status === "error") {
             await deleteObject(fileName)
             await invalidateLink(fileName)
