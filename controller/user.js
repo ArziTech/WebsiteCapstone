@@ -3,11 +3,11 @@ import FormData from "form-data";
 import {
     createNewUser,
     deleteUserFromDB,
-    getAllUser as modelGetAllUser, getSpecificUser
+    getAllUser as getSpecificUser
 } from "../models/user.js";
 import {deleteObject, putObject} from "../utils/s3.js";
 import {cfGetSignedUrl, invalidateLink} from "../utils/cloudfront.js";
-import {deleteImageFromDB} from "../models/image.js";
+import {modelUrl} from "../lib/config.js";
 
 
 export async function registerNewUser(req, res) {
