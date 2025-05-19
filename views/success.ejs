@@ -3,8 +3,10 @@
 <head>
     <%- include('header') %>
 </head>
-<body class="bg-gray-100 min-h-screen">
-<div class="container mx-auto px-4 py-8">
+<body class="bg-gray-100 min-h-screen flex flex-col">
+<%-  include('navbar') %>
+
+<div class="container mx-auto px-4 py-8 flex-grow">
     <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
         <!-- Success Icon -->
         <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
@@ -35,7 +37,7 @@
 
         <!-- Action Buttons -->
         <div class="flex flex-col space-y-3">
-            <a href="/api/users" class="w-full flex justify-center py-2 px-4
+            <a href="/users" class="w-full flex justify-center py-2 px-4
             border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                 Ke Dashboard
             </a>
@@ -45,5 +47,7 @@
         </div>
     </div>
 </div>
+<%-  include('footer') %>
+
 </body>
 </html>
