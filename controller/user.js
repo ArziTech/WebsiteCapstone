@@ -9,19 +9,6 @@ import {deleteObject, putObject} from "../utils/s3.js";
 import {cfGetSignedUrl, invalidateLink} from "../utils/cloudfront.js";
 import {deleteImageFromDB} from "../models/image.js";
 
-export async function getAllUser(req, res) {
-    const result = await modelGetAllUser()
-    if(result.status === "error") {
-        return res.status(500).json({
-            message: `Error in controller ${result.message}`,
-        });
-    }
-
-    return res.render('users.ejs', {
-        ...result,
-        count: result.users.length
-    })
-}
 
 export async function registerNewUser(req, res) {
     const {name}= req.body;

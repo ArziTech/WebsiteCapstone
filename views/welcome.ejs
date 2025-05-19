@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('header') %>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+<%-  include('navbar') %>
+
+<main class="flex-grow container mx-auto px-4 py-12">
+    <div class="max-w-4xl mx-auto text-center">
+        <!-- Header -->
+        <div class="mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">SMART LOCK DOOR</h1>
+            <h2 class="text-2xl md:text-3xl font-semibold text-indigo-600">With Face Recognition</h2>
+            <p class="mt-2 text-lg text-gray-600">Capstone Project Embedded AI K1B Kelompok 6</p>
+        </div>
+
+        <!-- Anggota Kelompok -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-12 card-hover transition-all duration-300">
+            <div class="bg-indigo-600 px-6 py-4">
+                <h3 class="text-xl font-bold text-white">Anggota Kelompok</h3>
+            </div>
+            <div class="divide-y divide-gray-200">
+                <% const members = [
+                    { name: "Muhammad Syauqi Azmii H", nim: "225150307111034" },
+                    { name: "Gunawan", nim: "225150307111042" },
+                    { name: "Miftahul Fikri Ramadhan", nim: "225150307111043" },
+                    { name: "Fariz Muhammad Zain", nim: "225150307111044" },
+                    { name: "Nesha Khaira Utami", nim: "225150307111045" }
+                ]; %>
+                <% members.forEach(member => { %>
+                    <div class="px-6 py-4 flex justify-between items-center">
+                        <div class="text-left">
+                            <p class="font-medium text-gray-900"><%= member.name %></p>
+                            <p class="text-sm text-gray-500">Teknik Komputer</p>
+                        </div>
+                        <span class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                                <%= member.nim %>
+                            </span>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+
+        <!-- Tombol Dashboard -->
+        <div class="flex justify-center">
+            <a href="/dashboard" class="px-8 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-xl">
+                Masuk ke Dashboard
+            </a>
+        </div>
+    </div>
+</main>
+
+<%- include('footer') %>
+</body>
+</html>

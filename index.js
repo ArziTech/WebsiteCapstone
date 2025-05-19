@@ -6,7 +6,7 @@ import pool from './lib/db.js'
 import modelRouter from './routes/predict.js'
 import imageRouter from './routes/image.js'
 import dbRouter from './routes/db.js'
-import registerRouter from './routes/register.js'
+import dashboardRouter from './routes/dashboard.js'
 import userRouter from './routes/user.js'
 
 import {getAllAccessLog} from "./models/access_log.js";
@@ -18,30 +18,11 @@ moment.locale('id');
 const app = express();
 const port = 3000;
 
-app.get('/',async (req, res) => {
-    try {
-        const response = await getAllAccessLog()
-
-        return res.render('index.ejs', {
-            ...response,
-            count: response.count
-        })
-    } catch (error) {
-        console.error("Error fetching image URLs:", error);
-        return res.status(500).json({
-            code: 500,
-            message: "Failed to retrieve image URLs",
-            error: error.message
-        });
-    }
-})
-
-
+app.use('/', dashboardRouter);
 app.use('/api', imageRouter);
 app.use('/predict', modelRouter);
 app.use('/db', dbRouter);
 app.use('/api', userRouter);
-app.use('/register', registerRouter);
 
 app.listen(port, () => {
     try {
