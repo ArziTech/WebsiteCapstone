@@ -11,6 +11,7 @@ import {deleteImageFromDB} from "../models/image.js";
 
 
 export async function registerNewUser(req, res) {
+    console.info("incoming request")
     const {name}= req.body;
     const file =  req.file
     if (!req.file) {
@@ -27,7 +28,7 @@ export async function registerNewUser(req, res) {
             contentType: file.mimetype
         });
 
-        const result = await axios.post(`http://3.24.137.25:5000/`, formData);
+        const result = await axios.post(`${modelUrl}/`, formData);
 
         const matrix_result = result.data.prediction_embed
         // console.log(matrix_result)
