@@ -22,9 +22,10 @@ export async function getAllImages() {
 
 export async function saveImageToDB(fileName) {
     try {
+        const date = new Date()
         await pool.query(
-            "INSERT INTO access_log (key) VALUES ($1)",
-            [fileName]
+            "INSERT INTO access_log (key, created_at) VALUES ($1, $2)",
+            [fileName, date]
         );
         return { status: "success",message: "success" }
     } catch (dbError) {
