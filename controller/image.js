@@ -155,10 +155,12 @@ export async function saveNewImage(req, res) {
         // if match
         if(isMatch) {
 
-            await updateResult(`{"name": "${result.rows[matchIndex].name}", "similarity": ${similarityRes} }`, fileName);
+            const name = result.rows[matchIndex]?.name || "no name";
+
+            await updateResult(`{"name": "${name}", "similarity": ${similarityRes} }`, fileName);
 
             return res.status(202).json({
-                name: result.rows[matchIndex].name,
+                name: name,
                 message: "Authorized",
                 similarity: similarityRes,
                 matchIndex,
