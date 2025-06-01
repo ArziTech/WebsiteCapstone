@@ -38,6 +38,23 @@ export async function saveImageToDB(fileName) {
     }
 }
 
+export async function updateResult(result, filename) {
+    try {
+        await pool.query(
+            `UPDATE access_log SET result = $1 WHERE key = $2`,
+            [result, filename]
+        );
+        return { status: "success", message: "success" }
+    } catch (dbError) {
+        console.error("Database logging error:", dbError);
+        return {
+            status:"error",
+            message: "File upload failed",
+            error: dbError.message
+        };
+    }
+}
+
 export async function deleteImageFromDB(fileName) {
     try {
         let deletedRow  = 0;

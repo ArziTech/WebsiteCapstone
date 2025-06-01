@@ -1,7 +1,11 @@
-import {deleteImageFromDB, saveImageToDB} from "../models/image.js"
+import {
+    deleteImageFromDB,
+    getAllImages as modelGetAllImages,
+    saveImageToDB,
+    updateResult
+} from "../models/image.js"
 import {deleteObject, putObject} from "../utils/s3.js";
 import {invalidateLink} from "../utils/cloudfront.js";
-import {getAllImages as modelGetAllImages} from "../models/image.js";
 import pool from "../lib/db.js";
 import axios from "axios";
 import {modelUrl} from "../lib/config.js";
@@ -64,8 +68,13 @@ export async function saveNewImage(req, res) {
                 message: "No file uploaded."
             });
         }
+        // console.dir(req, {depth: null, colors: true})
+
 
         const { buffer, originalname: fileName, mimetype } = req.file;
+        const x  = req.body.x;
+        const y  = req.body.y;
+
 
         // return res.send({buffer})
 
@@ -109,10 +118,13 @@ export async function saveNewImage(req, res) {
             contentType: mimetype
         });
 
+
+        formData.append('x', x)
+        formData.append('y', y)
+
         const resultEmbed = await axios.post(`${modelUrl}/embed`, formData)
         const data = resultEmbed.data
 
-        // apakah kita perlu untuk mengambil dari database?
         const result = await pool.query("SELECT name, embed FROM users")
 
         const inputImage = data
@@ -120,27 +132,18 @@ export async function saveNewImage(req, res) {
         // convert from string to array
         const embedImages = result.rows.map(item => {
             const rawString = item.embed
-            // console.log(rawString
-            // )
-
-            // Step 1: Clean the string
             const cleaned = rawString.replace(/^\{{2}|}}$/g, ''); // remove leading '{{' and trailing '}}'
-
-            // Step 2: Convert to array of numbers
-            const numberArray = cleaned.split(',').map(s => parseFloat(s.replace(/"/g, '')));
-            return numberArray
+            return cleaned.split(',').map(s => parseFloat(s.replace(/"/g, '')))
         })
-
 
         let matchIndex = -999;
         let similarityRes = 0
-
 
         const isMatch = embedImages.some((item, index) => {
             const similarity  = cosineSimilarity(item, inputImage)
             // const similarity  = euclideanDistance(item, inputImage)
             console.log(similarity)
-            if(similarity > 0.96) {
+            if(similarity > 0.6) {
                 matchIndex = index;
                 similarityRes = similarity
                 return true;
@@ -149,9 +152,11 @@ export async function saveNewImage(req, res) {
         })
 
         // console.log("isMatch", isMatch)
-
         // if match
         if(isMatch) {
+
+            await updateResult(`{"name": "${result.rows[matchIndex].name}", "similarity": ${similarityRes} }`, fileName);
+
             return res.status(202).json({
                 name: result.rows[matchIndex].name,
                 message: "Authorized",
@@ -162,6 +167,7 @@ export async function saveNewImage(req, res) {
 
         // console.log(embedImages)
 
+        await updateResult("Unauthorized", fileName);
         return res.status(403).json({
             message: "Unauthorized",
             filename: fileName
